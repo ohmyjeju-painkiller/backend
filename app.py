@@ -104,7 +104,6 @@ class UserModel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     gender = db.Column(db.String(20))
 
-db.create_all()
 
 user_ns = api.namespace('users', description='User operations')
 
@@ -214,6 +213,7 @@ class Place(Resource):
 
 
 if __name__ == "__main__":
+    db.create_all()
     app.debug = True
     app.run(debug=True)
 
