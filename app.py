@@ -207,8 +207,12 @@ class Place(Resource):
                     (place['latitude'], place['longitude']),
                     (latitude, longitude)).km
             result.append(place)
-        return result
+        return self.filter_and_reorder_places(
+                result, gender, weather)
 
+    def filter_and_reorder_places(
+            self, places, gender, weather):
+        return places
 
 
 
