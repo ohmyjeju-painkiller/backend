@@ -105,6 +105,10 @@ class UserModel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     gender = db.Column(db.String(20))
 
+class WeatherModel(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    state = db.Column(db.String(20), nullable=True)
+
 
 user_ns = api.namespace('users', description='User operations')
 
@@ -134,20 +138,42 @@ weather = api.model('Weather', dict(
     temp=fields.Integer(readOnly=True, description='Current temporature in celsius')
 ))
 
+weather_state = api.model('WeatherState', dict(
+    state=fields.String()
+))
+
 @weather_ns.route('/')
 class Weather(Resource):
     @weather_ns.doc('get_weather')
     @weather_ns.marshal_with(weather, code=200)
     def get(self):
+        weather = WeatherModel.query.filter_by(id=1).first()
+        
         r = requests.get("http://api.openweathermap.org/data/2.5/weather?id=1846266&APPID=ded122307edfb8f2fd9c688138c4f220")
         json = r.json()
-        summary = json['weather'][0]['main'].lower()
+        if weather is None or weather.state is None or weather.state == 'null':
+            summary = json['weather'][0]['main'].lower()
+        else:
+            summary = weather.state
         temp = json['main']['temp'] - 273.15
 
         return dict(
             summary=summary,
             temp=temp
         )
+
+    @weather_ns.doc("put_weather")
+    @weather_ns.expect(weather_state)
+    def put(self):
+        weather_state = api.payload['weather']
+        weather = WeatherModel.query.filter_by(id=1).first()
+        if weather is None:
+            weather = WeatherModel(state=weather_state)
+            db.session.add(weather)
+        weather.state = weather_state
+        return {}, 200
+        
+
 
 place_ns= api.namespace('places', description='Place operations')
 
