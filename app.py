@@ -7,6 +7,7 @@ from flask import Flask, request, url_for
 from flask_restplus import Api, Resource, fields, reqparse
 from flask_sqlalchemy import SQLAlchemy
 
+from geopy.distance import vincenty
 
 def load_db(filename):
     result = []
@@ -200,7 +201,13 @@ class Place(Resource):
         return self.make_result(latitude, longitude, gender, weather)
 
     def make_result(self, latitude, longitude, gender, weather):
-        return places
+        result = []
+        for place in places:
+            place['distance'] = vincenty(
+                    (place['latitude'], place['longitude']),
+                    (latitude, longitude)).km
+            result.append(place)
+        return result
 
 
 
