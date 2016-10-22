@@ -2,10 +2,19 @@ import requests
 from werkzeug.exceptions import BadRequest
 from flask import Flask, request, url_for
 from flask_restplus import Api, Resource, fields
+from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite://'
 application = app
 api = Api(app)
+db = SQLAlchemy(app)
+
+class UserModel(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    gender = db.Column(db.String(20))
+
+db.create_all()
 
 user_ns = api.namespace('users', description='User operations')
 
@@ -20,10 +29,12 @@ class User(Resource):
     @user_ns.expect(user)
     @user_ns.marshal_with(user, code=201)
     def post(self):
-        user = api.payload
-        if user['gender'] not in ['male', 'female']:
+        payload = api.payload
+        if payload['gender'] not in ['male', 'female']:
             raise BadRequest("Gender is male or femal")
-        user['id'] = 123
+        user = UserModel(gender=payload['gender'])
+        db.session.add(user)
+        db.session.commit()
         return user, 201
 
 weather_ns = api.namespace('weather', description="Weather operations")
