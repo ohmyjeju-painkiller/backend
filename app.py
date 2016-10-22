@@ -2,6 +2,7 @@ from flask import Flask, request, url_for
 from flask.ext.restplus import Api, Resource
 
 app = Flask(__name__)
+application = app
 api = Api(app)
 
 @api.route('/join')
