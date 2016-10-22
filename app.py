@@ -12,6 +12,7 @@ user = api.model('User', dict(
     id=fields.Integer(readOnly=True, description='The user identifier'),
     gender=fields.String(required=True, description='The gender of user (female or male)')
 ))
+
 @user_ns.route('/')
 class User(Resource):
     @user_ns.doc("create_user")
@@ -24,10 +25,18 @@ class User(Resource):
         user['id'] = 123
         return user, 201
 
-@api.route('/weather')
+weather_ns = api.namespace('weather', description="Weather operations")
+
+weather = api.model('Weather', dict(
+    current=fields.String(readOnly=True, description='Current weather(cloudy, sunny, raining, snowing)')
+))
+
+@weather_ns.route('/')
 class Weather(Resource):
+    @weather_ns.doc('get_weather')
+    @weather_ns.marshal_with(weather, code=200)
     def get(self):
-        return dict(current_weather="cloudy")
+        return dict(current='raining')
 
 @api.route('/users/<user_id>/types')
 class Types(Resource):
