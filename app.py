@@ -9,7 +9,7 @@ api = Api(app)
 user_ns = api.namespace('users', description='User operations')
 
 user = api.model('User', dict(
-    id=fields.Integer(readOnly=True, description='The user identifier'),
+    id=fields.Integer(readOnly=True, description='The user identifier (auto generated)'),
     gender=fields.String(required=True, description='The gender of user (female or male)')
 ))
 
