@@ -178,8 +178,6 @@ def get_weather():
         temp=temp
     )
 
-        
-
 
 place_ns= api.namespace('places', description='Place operations')
 
