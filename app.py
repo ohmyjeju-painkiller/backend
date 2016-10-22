@@ -147,31 +147,37 @@ class Weather(Resource):
     @weather_ns.doc('get_weather')
     @weather_ns.marshal_with(weather, code=200)
     def get(self):
-        weather = WeatherModel.query.filter_by(id=1).first()
+        return get_weather()
         
-        r = requests.get("http://api.openweathermap.org/data/2.5/weather?id=1846266&APPID=ded122307edfb8f2fd9c688138c4f220")
-        json = r.json()
-        if weather is None or weather.state is None or weather.state == 'null':
-            summary = json['weather'][0]['main'].lower()
-        else:
-            summary = weather.state
-        temp = json['main']['temp'] - 273.15
-
-        return dict(
-            summary=summary,
-            temp=temp
-        )
 
     @weather_ns.doc("put_weather")
     @weather_ns.expect(weather_state)
     def put(self):
-        weather_state = api.payload['weather']
-        weather = WeatherModel.query.filter_by(id=1).first()
+        weather_state = api.payload['state']
+        weather = WeatherModel.query.first()
         if weather is None:
             weather = WeatherModel(state=weather_state)
             db.session.add(weather)
         weather.state = weather_state
+        db.session.commit()
         return {}, 200
+
+def get_weather():
+    weather = WeatherModel.query.filter_by(id=1).first()
+    
+    r = requests.get("http://api.openweathermap.org/data/2.5/weather?id=1846266&APPID=ded122307edfb8f2fd9c688138c4f220")
+    json = r.json()
+    if weather is None or weather.state is None or weather.state == 'null':
+        summary = json['weather'][0]['main'].lower()
+    else:
+        summary = weather.state
+    temp = json['main']['temp'] - 273.15
+
+    return dict(
+        summary=summary,
+        temp=temp
+    )
+
         
 
 
@@ -222,9 +228,7 @@ class Place(Resource):
         longitude = args['longitude']
         gender = user_model.gender
 
-        r = requests.get("http://api.openweathermap.org/data/2.5/weather?id=1846266&APPID=ded122307edfb8f2fd9c688138c4f220")
-        json = r.json()
-        weather = json['weather'][0]['main'].lower()
+        weather = get_weather()['summary']
 
         return self.make_result(latitude, longitude, gender, weather, place_type)
 
