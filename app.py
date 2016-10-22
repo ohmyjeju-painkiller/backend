@@ -1,3 +1,4 @@
+import requests
 from werkzeug.exceptions import BadRequest
 from flask import Flask, request, url_for
 from flask_restplus import Api, Resource, fields
@@ -28,7 +29,8 @@ class User(Resource):
 weather_ns = api.namespace('weather', description="Weather operations")
 
 weather = api.model('Weather', dict(
-    current=fields.String(readOnly=True, description='Current weather(cloudy, sunny, raining, snowing)')
+    summary=fields.String(readOnly=True, description='Current weather summary(clouds, rain, clear)'),
+    temp=fields.Integer(readOnly=True, description='Current temporature in celsius')
 ))
 
 @weather_ns.route('/')
@@ -36,7 +38,16 @@ class Weather(Resource):
     @weather_ns.doc('get_weather')
     @weather_ns.marshal_with(weather, code=200)
     def get(self):
-        return dict(current='raining')
+        r = requests.get("http://api.openweathermap.org/data/2.5/weather?id=1846266&APPID=ded122307edfb8f2fd9c688138c4f220")
+        json = r.json()
+        print json
+        summary = json['weather'][0]['main'].lower()
+        temp = json['main']['temp'] - 273.15
+
+        return dict(
+            summary=summary,
+            temp=temp
+        )
 
 @api.route('/users/<user_id>/types')
 class Types(Resource):
