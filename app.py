@@ -1,15 +1,28 @@
+from werkzeug.exceptions import BadRequest
 from flask import Flask, request, url_for
-from flask.ext.restplus import Api, Resource
+from flask_restplus import Api, Resource, fields
 
 app = Flask(__name__)
 application = app
 api = Api(app)
 
-@api.route('/join')
+user_ns = api.namespace('users', description='User operations')
+
+user = api.model('User', dict(
+    id=fields.Integer(readOnly=True, description='The user identifier'),
+    gender=fields.String(required=True, description='The gender of user (female or male)')
+))
+@user_ns.route('/')
 class User(Resource):
+    @user_ns.doc("create_user")
+    @user_ns.expect(user)
+    @user_ns.marshal_with(user, code=201)
     def post(self):
-        gender = request.form['gender']
-        return dict(user_id="asdf")
+        user = api.payload
+        if user['gender'] not in ['male', 'female']:
+            raise BadRequest("Gender is male or femal")
+        user['id'] = 123
+        return user, 201
 
 @api.route('/weather')
 class Weather(Resource):
@@ -58,5 +71,6 @@ class Location(Resource):
 
 
 if __name__ == "__main__":
+    app.debug = True
     app.run(debug=True)
 
