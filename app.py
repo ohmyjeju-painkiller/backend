@@ -244,7 +244,7 @@ class Place(Resource):
     def filter_and_reorder_places(
             self, places, gender, weather, place_type):
         places = self.filter_by_place_type(places, place_type)
-        places = self.filter_by_time(places)
+        #places = self.filter_by_time(places)
         places = self.filter_by_weather(places, weather)
         places = self.sort_by_meta_score(places, gender)
         return places
