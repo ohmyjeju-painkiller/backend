@@ -1,6 +1,7 @@
 import requests
 import csv
 import re
+import os
 
 from werkzeug.exceptions import BadRequest
 from flask import Flask, request, url_for
@@ -94,7 +95,7 @@ places = make_place_db()
 
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/tmp.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
 application = app
 api = Api(app)
 db = SQLAlchemy(app)
