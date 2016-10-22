@@ -14,6 +14,7 @@ def load_db(filename):
     with open(filename) as f:
         reader = csv.reader(f)
         for row in reader:
+            row = [unicode(item, 'utf-8') for item in row]
             if headers is None:
                 headers = row
             else:
@@ -28,7 +29,7 @@ def make_place_db():
     for menu in raw_menus:
         index = menu['RestaurantName']
         name = menu['MenuName']
-        price = menu['Price']
+        price = toInt(menu['Price'])
         images = split_and_strip(menu['Prictures'])
 
         indexed_menu[index] = dict(
@@ -40,14 +41,14 @@ def make_place_db():
     for place in raw_places:
         category = place['Category']
         name = place['Name']
-        score = place['Score']
+        score = toFloat(place['Score'])
         information = place['Information']
         images = split_and_strip(place['Pictures'])
         open_time = split_and_strip(place['OpenTime'])
         close_time = split_and_strip(place['CloseTime'])
-        price = place['Price']
-        latitude = place['Latitude']
-        longitude = place['Longitude']
+        price = toInt(place['Price'])
+        latitude = toFloat(place['Latitude'])
+        longitude = toFloat(place['Longitude'])
         gender = place['Gender']
         weathers = map(lambda x: x.lower(), split_and_strip(place['Weather']))
         menus = indexed_menu[name] if name in indexed_menu else None
@@ -73,15 +74,26 @@ def make_place_db():
             recommend_times=recommend_times,
             menus=menus
         ))
+    return places
 
 def split_and_strip(string):
     return map(lambda x: x.strip(), re.split('[\n,]', string))
+
+def toInt(string):
+    if len(string) == 0 or string == '-':
+        return 0
+    return int(string.replace(',', ''))
+
+def toFloat(string):
+    if len(string) == 0 or string == '-':
+        return 0.0
+    return float(string.replace(',', ''))
 
 places = make_place_db()
 
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite://'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/tmp.db'
 application = app
 api = Api(app)
 db = SQLAlchemy(app)
@@ -152,8 +164,9 @@ place = api.model('Place', dict(
     images=fields.List(fields.String),
     price=fields.Integer(readOnly=True),
     menus=fields.List(fields.Nested(menu)),
-    score=fields.Integer(readOnly=True)
+    score=fields.Float(readOnly=True)
 ))
+
 
 place_parser = reqparse.RequestParser()
 place_parser.add_argument('latitude', required=True, type=float, help='Coordinates latitude')
@@ -170,15 +183,15 @@ class Places(Resource):
 @place_ns.expect(place_parser)
 @place_ns.param('place_type', 'Place Type')
 class Place(Resource):
-    @place_ns.doc('get_place')
-    @place_ns.marshal_with(place, code=200)
+    @place_ns.doc('get_places')
+    @place_ns.marshal_list_with(place, code=200)
     def get(self, place_type):
         args = place_parser.parse_args(strict=True)
         user_model = UserModel.query.filter_by(id=args['user_id']).one()
 
         latitude = args['latitude']
         longitude = args['longitude']
-        gender = user_mode.gender
+        gender = user_model.gender
 
         r = requests.get("http://api.openweathermap.org/data/2.5/weather?id=1846266&APPID=ded122307edfb8f2fd9c688138c4f220")
         json = r.json()
@@ -187,46 +200,7 @@ class Place(Resource):
         return self.make_result(latitude, longitude, gender, weather)
 
     def make_result(self, latitude, longitude, gender, weather):
-        return {}
-
-
-@api.route('/users/<user_id>/types')
-class Types(Resource):
-    def get(self, user_id):
-        return dict(types=["attractions", "accommodations", "foods"])
-
-@api.route('/users/<user_id>/types/<type>')
-class Locations(Resource):
-    def get(self, user_id, type):
-        return dict(
-            locations=[
-                dict(id="18041", name="Art And Jeju", photo=url_fr("static", filename="art_and_jeju.jpg"))
-            ]
-        )
-
-@api.route('/users/<user_id>/locations/<location_id>')
-class Location(Resource):
-    def get(self, user_id, location_id):
-        return dict(
-            photos=[
-                url_fr("static", filename="art_and_jeju.jpg"),
-                url_fr("static", filename="art_and_jeju2.jpg")
-            ],
-            information="The Jeju Museum of Art is surrounded by the beautiful and pristine nature of Jeju. The museum is the epicenter of Jeju art and reflects the local culture, colors and sounds of the island. It is a center at which locals and tourists can appreciate historical and recent artworks at its permanent exhibition halls, special exhibition hall and outdoor gallery. The Chang Ree-suok Hall displays 110 artworks made by the major Korean artist Chang Ree-suok. The museum also hosts various cultural and art programs.",
-            bus=[
-                dict(
-                    number=100,
-                    station=[100,100],
-                    where=-2,
-                    remainTime="5 min"
-                )
-            ],
-            taxi=dict(
-                expectedTime="20 min",
-                price="10000 won"
-            )
-        )
-
+        return places
 
 
 
