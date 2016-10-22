@@ -30,7 +30,7 @@ def make_place_db():
     for menu in raw_menus:
         index = menu['RestaurantName']
         name = menu['MenuName']
-        price = toInt(menu['Price'])
+        price = menu['Price']
         images = split_and_strip(menu['Prictures'])
 
         indexed_menu[index] = dict(
@@ -47,7 +47,7 @@ def make_place_db():
         images = split_and_strip(place['Pictures'])
         open_time = split_and_strip(place['OpenTime'])
         close_time = split_and_strip(place['CloseTime'])
-        price = toInt(place['Price'])
+        price = place['Price']
         latitude = toFloat(place['Latitude'])
         longitude = toFloat(place['Longitude'])
         gender = place['Gender']
@@ -153,7 +153,7 @@ place_ns= api.namespace('places', description='Place operations')
 menu = api.model('Menu', dict(
     name=fields.String(readOnly=True),
     images=fields.List(fields.String),
-    price=fields.Integer(readOnly=True)
+    price=fields.String(readOnly=True)
 ))
 
 place = api.model('Place', dict(
@@ -163,7 +163,7 @@ place = api.model('Place', dict(
     name=fields.String(readOnly=True, description='Name'),
     information=fields.String(readOnly=True),
     images=fields.List(fields.String),
-    price=fields.Integer(readOnly=True),
+    price=fields.String(readOnly=True),
     menus=fields.List(fields.Nested(menu)),
     score=fields.Float(readOnly=True)
 ))
