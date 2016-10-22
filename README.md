@@ -8,3 +8,14 @@ Beam is a recommadation service focused on simplicity. It takes location, weathe
  * Any DBMS Software which is supported by sqlalchemy
 
 
+# How to run
+ Just visit test page (https://ohmyjeju.herokuapp.com/)
+
+## Local
+ I strongly recommend to use virtualenv. 
+
+      git clone git@github.com:ohmyjeju-painkiller/backend.git
+      cd backend
+      pip install -r requirements.txt
+      python app.py
+
