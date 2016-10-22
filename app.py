@@ -2,6 +2,7 @@ import requests
 import csv
 import re
 import os
+from datetime import datetime
 
 from werkzeug.exceptions import BadRequest
 from flask import Flask, request, url_for
@@ -46,8 +47,8 @@ def make_place_db():
         score = toFloat(place['Score'])
         information = place['Information']
         images = split_and_strip(place['Pictures'])
-        open_time = split_and_strip(place['OpenTime'])
-        close_time = split_and_strip(place['CloseTime'])
+        open_time = place['OpenTime']
+        close_time = place['CloseTime']
         price = place['Price']
         latitude = toFloat(place['Latitude'])
         longitude = toFloat(place['Longitude'])
@@ -165,7 +166,8 @@ place = api.model('Place', dict(
     images=fields.List(fields.String),
     price=fields.String(readOnly=True),
     menus=fields.List(fields.Nested(menu)),
-    score=fields.Float(readOnly=True)
+    score=fields.Float(readOnly=True),
+    meta_score=fields.Integer(readOnly=True)
 ))
 
 
@@ -178,7 +180,7 @@ place_parser.add_argument('user_id', required=True, help='User id')
 class Places(Resource):
     @place_ns.doc('get available place type')
     def get(self):
-        return dict(types=["attractions", "accommodations", "foods"])
+        return dict(types=["attraction", "accommodation", "foods"])
 
 @place_ns.route('/<place_type>')
 @place_ns.expect(place_parser)
@@ -198,21 +200,106 @@ class Place(Resource):
         json = r.json()
         weather = json['weather'][0]['main'].lower()
 
-        return self.make_result(latitude, longitude, gender, weather)
+        return self.make_result(latitude, longitude, gender, weather, place_type)
 
-    def make_result(self, latitude, longitude, gender, weather):
+    def make_result(self, latitude, longitude, gender, weather, place_type):
         result = []
         for place in places:
             place['distance'] = vincenty(
                     (place['latitude'], place['longitude']),
                     (latitude, longitude)).km
+            place['meta_score'] = self.get_meta_score(place, gender)
             result.append(place)
         return self.filter_and_reorder_places(
-                result, gender, weather)
+                result, gender, weather, place_type)
 
     def filter_and_reorder_places(
-            self, places, gender, weather):
+            self, places, gender, weather, place_type):
+        places = self.filter_by_place_type(places, place_type)
+        places = self.filter_by_time(places)
+        places = self.filter_by_weather(places, weather)
+        places = self.sort_by_meta_score(places, gender)
         return places
+
+    def filter_by_place_type(self, places, place_type):
+        return filter(lambda x: x['category']== place_type, places)
+
+    def filter_by_time(self, places):
+        def filterfunc(x):
+            if len(x['open_time'].strip()) == 0 or x['open_time'] == '-':
+                return True
+            startTime = x['open_time']
+            endTime = x['close_time']
+            return self.isNowInTimePeriod(startTime, endTime)
+        return filter(filterfunc, places)
+
+    def isNowInTimePeriod(self, startTime, endTime):
+        format = "%H:%M"
+        startTime = datetime.strptime(startTime, format).time()
+        endTime = datetime.strptime(endTime, format).time()
+        nowTime = datetime.now().time()
+        if startTime < endTime:
+            return nowTime >= startTime and nowTime <= endTime
+        else: #Over midnight
+            return nowTime >= startTime or nowTime <= endTime
+
+    def filter_by_weather(self, places, weather):
+        def filterfunc(x):
+            if 'all' in x['weathers']:
+                return True
+            elif weather in x['weathers']:
+                return True
+        return filter(filterfunc, places)
+
+    def sort_by_meta_score(self, places, gender):
+        def cmp(left, right):
+            return self.get_meta_score(right, gender) - self.get_meta_score(left, gender)
+
+        return sorted(
+                places,
+                cmp)
+
+    def get_meta_score(self, place, gender):
+        meta_score = 0
+        distance = place['distance']
+        if distance < 10:
+            meta_score += 300
+        elif distance < 20:
+            meta_score += 200
+        elif distance < 40:
+            meta_score += 150
+
+        if place['gender'] == 'both':
+            meta_score += 80
+
+        if place['gender'].lower() == gender:
+            meta_score += 150
+
+        score = place['score']
+        if score >= 9.5:
+            meta_score += 200
+        elif score >= 8.5:
+            meta_score += 150
+        elif score >= 7:
+            meta_score += 100
+        elif score >= 6:
+            meta_score += 50
+        elif score >= 4.8:
+            meta_score += 0
+        else:
+            meta_score -= 200
+
+        if 'recommend_times' in place:
+            for time in place['recommend_times']:
+                if len(time) != 2:
+                    continue
+                start, end = time
+                if self.isNowInTimePeriod(start, end):
+                    meta_score += 100
+
+        return int(meta_score)
+
+
 
 
 
