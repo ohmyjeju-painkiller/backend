@@ -14,9 +14,9 @@ Beam is a recommadation service focused on simplicity. It takes location, weathe
 ## Local
  I strongly recommend to use virtualenv. 
 
-'''bash
-  git clone git@github.com:ohmyjeju-painkiller/backend.git
-  cd backend
-  pip install -r requirements.txt
-  python app.py
-'''
+```bash
+$ git clone git@github.com:ohmyjeju-painkiller/backend.git
+$ cd backend
+$ pip install -r requirements.txt
+$ python app.py
+```
